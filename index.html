@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تست بالینی بیوشیمی | NetPHP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>🧪 تولید تست بالینی بیوشیمی</h1>
+    <p>تیم NetPHP.ir</p>
+  </header>
+
+  <main>
+    <!-- بخش ورود متن جزوه -->
+    <section class="card">
+      <h2>۱. متن جزوه را اینجا کپی کنید</h2>
+      <textarea id="noteInput" rows="8" placeholder="متن جزوه استاد را اینجا وارد کنید..."></textarea>
+    </section>
+
+    <!-- بخش انتخاب سطح دشواری -->
+    <section class="card">
+      <h2>۲. سطح دشواری را انتخاب کنید</h2>
+      <div class="difficulty-options">
+        <label>
+          <input type="radio" name="difficulty" value="آسان" checked>
+          <span>آسان</span>
+        </label>
+        <label>
+          <input type="radio" name="difficulty" value="متوسط">
+          <span>متوسط</span>
+        </label>
+        <label>
+          <input type="radio" name="difficulty" value="دشوار">
+          <span>دشوار</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- دکمه تولید تست -->
+    <button id="generateBtn" class="btn-primary">✨ تولید تست</button>
+
+    <!-- بخش نمایش تست‌ها (فعلاً خالی) -->
+    <section id="quizContainer" class="card hidden">
+      <h2>سوالات تست</h2>
+      <div id="questionContent"></div>
+    </section>
+
+    <!-- بخش درباره ما -->
+    <section class="card about">
+      <h3>درباره ما</h3>
+      <p>این برنامه توسط تیم <strong>NetPHP.ir</strong> ساخته شده است.</p>
+      <p>دانشجو: سنا حکیمیان | استاد راهنما: زواررضا</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>ساخته شده با ❤️ توسط تیم NetPHP.ir</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
