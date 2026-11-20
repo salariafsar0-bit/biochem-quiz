@@ -1,4 +1,4 @@
-// کلید API خودت را اینجا بگذار
+// ⚠️ کلید API خودت را اینجا قرار بده
 const API_KEY = "sk-IR539NDhCUXxvDtzUttgQIM8Dep2OuDidMDMxtcbFTv7FfNU"; 
 const API_URL = "https://api.gapgpt.app/v1/chat/completions";
 const MODEL_NAME = "gpt-4o-mini"; 
