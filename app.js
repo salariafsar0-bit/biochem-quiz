@@ -1,8 +1,6 @@
-// اطلاعات کلودفلر شما
-const CLOUDFLARE_ACCOUNT_ID = "081b35dcb5c837648266303964f6b36a"; 
-const CLOUDFLARE_API_TOKEN = "cfut_kUeKsR9uoxlOXpPuPwQLJOiCKBNa8pujgwXwNzJIed635a08"; 
-
-const API_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
+const API_KEY = "sk-IR539NDhCUXxvDtzUttgQIM8Dep2OuDidMDMxtcbFTv7FfNU"; // ← کلید API خودت را اینجا بگذار
+const API_URL = "https://api.gapgpt.app/v1/chat/completions";
+const MODEL_NAME = "gpt-4o-mini"; // مدل ارزان و سریع
 
 const generateBtn = document.getElementById('generateBtn');
 const noteInput = document.getElementById('noteInput');
@@ -41,9 +39,10 @@ generateBtn.addEventListener('click', async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`
+                'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
+                model: MODEL_NAME,
                 messages: [{ role: "user", content: prompt }],
                 response_format: { type: "json_object" }
             })
@@ -52,10 +51,10 @@ generateBtn.addEventListener('click', async () => {
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(`خطای سرور: ${response.status} - ${data.errors ? data.errors[0].message : 'خطای نامشخص'}`);
+            throw new Error(`خطای سرور: ${response.status} - ${data.error ? data.error.message : 'خطای نامشخص'}`);
         }
 
-        const quizData = JSON.parse(data.result.response);
+        const quizData = JSON.parse(data.choices[0].message.content);
         renderQuiz(quizData);
 
     } catch (error) {
