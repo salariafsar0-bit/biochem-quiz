@@ -15,15 +15,15 @@ const optionsContainer = document.getElementById('optionsContainer');
 const timerDisplay = document.getElementById('timerDisplay');
 const progressDisplay = document.getElementById('progressDisplay');
 const reviewContainer = document.getElementById('reviewContainer');
+const questionCard = document.getElementById('questionCard');
 
 // متغیرهای آزمون
 let questions = [];
-let userAnswers = []; // ذخیره پاسخ‌های کاربر
+let userAnswers = []; 
 let currentQuestionIndex = 0;
 let timerInterval;
 let timeLeft = 0;
 
-// شروع آزمون
 generateBtn.addEventListener('click', async () => {
     const noteText = noteInput.value.trim();
     const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
@@ -32,13 +32,14 @@ generateBtn.addEventListener('click', async () => {
 
     if (!noteText) return alert('لطفاً ابتدا متن جزوه را وارد کنید.');
 
-    generateBtn.textContent = '⏳ در حال تولید سوالات... (ممکن است کمی طول بکشد)';
+    generateBtn.textContent = '⏳ در حال تولید سوالات... (لطفاً صبر کنید)';
     generateBtn.disabled = true;
 
+    // پرامپت رو قوی‌تر کردیم تا هوش مصنوعی دقیقا همون چیزی رو بده که می‌خوایم
     const prompt = `
-    تو یک استاد بیوشیمی بالینی هستی. بر اساس متن جزوه زیر، ${numQ} تست چهارگزینه‌ای بالینی و علمی طراحی کن.
+    تو یک استاد بیوشیمی بالینی هستی. بر اساس متن جزوه زیر، دقیقا ${numQ} تست چهارگزینه‌ای طراحی کن.
     سطح دشواری: ${difficulty}
-    خروجی را دقیقاً به صورت JSON با ساختار زیر بده (فقط JSON خالص بدون هیچ متن اضافه):
+    خروجی باید فقط و فقط یک آبجکت JSON با ساختار زیر باشد (هیچ متن اضافه‌ای ننویس):
     {
       "questions": [
         {
@@ -64,12 +65,30 @@ generateBtn.addEventListener('click', async () => {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ? data.error.message : 'خطای نامشخص');
+        if (!response.ok) throw new Error(data.error ? data.error.message : 'خطای نامشخص از سمت سرور');
 
-        const parsedData = JSON.parse(data.choices[0].message.content);
-        questions = parsedData.questions;
+        // اینجا یک بررسی دقیق انجام میدیم که آیا هوش مصنوعی آرایه سوالات رو داده یا نه
+        let parsedData = JSON.parse(data.choices[0].message.content);
         
-        if(questions.length === 0) throw new Error("هیچ سوالی تولید نشد.");
+        // اگر هوش مصنوعی کلید questions رو نذاشته بود، ولی یک آرایه مستقیم داده بود:
+        if (Array.isArray(parsedData)) {
+            questions = parsedData;
+        } else if (parsedData.questions && Array.isArray(parsedData.questions)) {
+            questions = parsedData.questions;
+        } else {
+            // اگر ساختار کاملا متفاوت بود، اولین آرایه‌ای که پیدا کنیم رو میگیریم
+            const possibleArray = Object.values(parsedData).find(val => Array.isArray(val));
+            if (possibleArray) {
+                questions = possibleArray;
+            } else {
+                throw new Error("ساختار خروجی هوش مصنوعی نامعتبر است. لطفاً دوباره تلاش کنید.");
+            }
+        }
+        
+        if(questions.length === 0) throw new Error("هیچ سوالی تولید نشد. متن جزوه ممکن است کوتاه باشد.");
+        
+        // اطمینان از اینکه هر سوال گزینه داره
+        questions = questions.filter(q => q.question && q.options && q.options.length > 0);
 
         startQuiz(timeLimit);
 
@@ -85,7 +104,7 @@ function startQuiz(minutes) {
     quizSection.classList.remove('hidden');
     
     currentQuestionIndex = 0;
-    userAnswers = new Array(questions.length).fill(null); // ریست کردن پاسخ‌ها
+    userAnswers = new Array(questions.length).fill(null); 
     timeLeft = minutes * 60;
     
     updateTimerDisplay();
@@ -116,7 +135,6 @@ function showQuestion() {
         btn.className = 'option-btn';
         btn.textContent = opt;
         
-        // اگر کاربر قبلا گزینه‌ای انتخاب کرده بود، دوباره هایلایت شود
         if (userAnswers[currentQuestionIndex] === index) {
             btn.style.background = 'rgba(59, 130, 246, 0.3)';
             btn.style.borderColor = '#3b82f6';
@@ -126,27 +144,23 @@ function showQuestion() {
         optionsContainer.appendChild(btn);
     });
 
-    // اگر قبلا جواب داده، دکمه بعدی فعال باشد
     if (userAnswers[currentQuestionIndex] !== null) {
         nextBtn.classList.remove('hidden');
     }
 }
 
 function selectOption(selectedIndex, btn) {
-    userAnswers[currentQuestionIndex] = selectedIndex; // ذخیره انتخاب کاربر
+    userAnswers[currentQuestionIndex] = selectedIndex; 
     
-    // برداشتن هایلایت از بقیه
     const allBtns = optionsContainer.querySelectorAll('.option-btn');
     allBtns.forEach(b => {
         b.style.background = 'rgba(255,255,255,0.05)';
         b.style.borderColor = 'rgba(255,255,255,0.1)';
     });
 
-    // هایلایت کردن گزینه انتخاب شده
     btn.style.background = 'rgba(59, 130, 246, 0.3)';
     btn.style.borderColor = '#3b82f6';
 
-    // نمایش دکمه بعدی
     nextBtn.classList.remove('hidden');
     if (currentQuestionIndex === questions.length - 1) {
         nextBtn.textContent = 'پایان آزمون 🏁';
@@ -177,7 +191,6 @@ function endQuiz() {
         const isCorrect = userAns === q.correctIndex;
         if (isCorrect) correctCount++;
 
-        // ساخت بخش بررسی برای هر سوال
         reviewHTML += `
             <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <p style="font-weight: bold; margin-bottom: 0.5rem;">${index + 1}. ${q.question}</p>
@@ -201,7 +214,6 @@ function endQuiz() {
     setupPdfButton();
 }
 
-// لیدربورد (با استفاده از LocalStorage)
 function saveAndShowLeaderboard(newScore) {
     let scores = JSON.parse(localStorage.getItem('biochemLeaderboard')) || [];
     scores.push(newScore);
@@ -218,7 +230,6 @@ function saveAndShowLeaderboard(newScore) {
     });
 }
 
-// آزمون مجدد
 document.getElementById('retakeBtn').addEventListener('click', () => {
     resultSection.classList.add('hidden');
     setupSection.classList.remove('hidden');
@@ -228,7 +239,6 @@ document.getElementById('retakeBtn').addEventListener('click', () => {
     window.scrollTo(0, 0);
 });
 
-// ساخت PDF
 function setupPdfButton() {
     document.getElementById('pdfBtn').onclick = () => {
         const element = document.createElement('div');
