@@ -1,9 +1,9 @@
+// اطلاعات کلودفلر شما
 const CLOUDFLARE_ACCOUNT_ID = "081b35dcb5c837648266303964f6b36a"; 
-const CLOUDFLARE_API_TOKEN = "cfut_eSJ2A2wBNwsQa4daC7QeohcrdYM8IpQOuXZqFYJVe0005c12"; 
+const CLOUDFLARE_API_TOKEN = "cfut_kUeKsR9uoxlOXpPuPwQLJOiCKBNa8pujgwXwNzJIed635a08"; 
 
 const API_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
 
-// پیدا کردن المان‌های صفحه
 const generateBtn = document.getElementById('generateBtn');
 const noteInput = document.getElementById('noteInput');
 const quizContainer = document.getElementById('quizContainer');
@@ -52,11 +52,9 @@ generateBtn.addEventListener('click', async () => {
         const data = await response.json();
         
         if (!response.ok) {
-            // نمایش خطای دقیق اگر کلودفلر جواب نداد
             throw new Error(`خطای سرور: ${response.status} - ${data.errors ? data.errors[0].message : 'خطای نامشخص'}`);
         }
 
-        // پردازش پاسخ کلودفلر
         const quizData = JSON.parse(data.result.response);
         renderQuiz(quizData);
 
