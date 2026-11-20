@@ -15,7 +15,6 @@ const optionsContainer = document.getElementById('optionsContainer');
 const timerDisplay = document.getElementById('timerDisplay');
 const progressDisplay = document.getElementById('progressDisplay');
 const reviewContainer = document.getElementById('reviewContainer');
-const questionCard = document.getElementById('questionCard');
 
 // متغیرهای آزمون
 let questions = [];
@@ -35,11 +34,10 @@ generateBtn.addEventListener('click', async () => {
     generateBtn.textContent = '⏳ در حال تولید سوالات... (لطفاً صبر کنید)';
     generateBtn.disabled = true;
 
-    // پرامپت رو قوی‌تر کردیم تا هوش مصنوعی دقیقا همون چیزی رو بده که می‌خوایم
     const prompt = `
     تو یک استاد بیوشیمی بالینی هستی. بر اساس متن جزوه زیر، دقیقا ${numQ} تست چهارگزینه‌ای طراحی کن.
     سطح دشواری: ${difficulty}
-    خروجی باید فقط و فقط یک آبجکت JSON با ساختار زیر باشد (هیچ متن اضافه‌ای ننویس):
+    خروجی باید فقط و فقط یک آبجکت JSON معتبر با ساختار زیر باشد (هیچ متن اضافه‌ای، هیچ کاما اضافه‌ای):
     {
       "questions": [
         {
@@ -67,33 +65,42 @@ generateBtn.addEventListener('click', async () => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ? data.error.message : 'خطای نامشخص از سمت سرور');
 
-        // اینجا یک بررسی دقیق انجام میدیم که آیا هوش مصنوعی آرایه سوالات رو داده یا نه
-        let parsedData = JSON.parse(data.choices[0].message.content);
+        let parsedData;
+        try {
+            parsedData = JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            // اگر هوش مصنوعی جواب رو خراب داده بود، خطای دقیق‌تری نشون بده
+            throw new Error("هوش مصنوعی پاسخ را با فرمت نامعتبر فرستاد. لطفاً دوباره روی دکمه شروع کلیک کنید.");
+        }
         
-        // اگر هوش مصنوعی کلید questions رو نذاشته بود، ولی یک آرایه مستقیم داده بود:
+        // سیستم تشخیص و بازیابی هوشمند
         if (Array.isArray(parsedData)) {
             questions = parsedData;
         } else if (parsedData.questions && Array.isArray(parsedData.questions)) {
             questions = parsedData.questions;
         } else {
-            // اگر ساختار کاملا متفاوت بود، اولین آرایه‌ای که پیدا کنیم رو میگیریم
             const possibleArray = Object.values(parsedData).find(val => Array.isArray(val));
             if (possibleArray) {
                 questions = possibleArray;
             } else {
-                throw new Error("ساختار خروجی هوش مصنوعی نامعتبر است. لطفاً دوباره تلاش کنید.");
+                throw new Error("هوش مصنوعی ساختار سوالات را رعایت نکرده است. لطفاً دوباره امتحان کنید.");
             }
         }
         
-        if(questions.length === 0) throw new Error("هیچ سوالی تولید نشد. متن جزوه ممکن است کوتاه باشد.");
-        
-        // اطمینان از اینکه هر سوال گزینه داره
+        // فیلتر کردن سوالات ناقص
         questions = questions.filter(q => q.question && q.options && q.options.length > 0);
+
+        if(questions.length === 0) throw new Error("هیچ سوال معتبری تولید نشد. لطفاً دوباره امتحان کنید یا متن جزوه را طولانی‌تر کنید.");
+
+        // اگر تعداد سوالات از تعدادی که کاربر خواسته کمتر بود، بهش اطلاع بده
+        if (questions.length < numQ) {
+            alert(`توجه: هوش مصنوعی فقط توانست ${questions.length} سوال تولید کند. آزمون با همین تعداد شروع می‌شود.`);
+        }
 
         startQuiz(timeLimit);
 
     } catch (error) {
-        alert('مشکل در تولید سوالات: ' + error.message);
+        alert('مشکل در تولید سوالات:\n' + error.message);
         generateBtn.textContent = '🚀 شروع آزمون';
         generateBtn.disabled = false;
     }
