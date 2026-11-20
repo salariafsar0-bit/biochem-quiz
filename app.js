@@ -233,58 +233,63 @@ document.getElementById('retakeBtn').addEventListener('click', () => {
     window.scrollTo(0, 0);
 });
 
-// ✨ این بخش برای ساخت PDF اصلاح شده است
+// ✨ تابع حرفه‌ای ساخت PDF (بدون مشکل بریدگی)
 function setupPdfButton() {
-    document.getElementById('pdfBtn').onclick = () => {
-        // ساخت یک کانتینر موقت
-        const element = document.createElement('div');
+    document.getElementById('pdfBtn').onclick = async () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
         
-        // استایل‌دهی دقیق به کانتینر (استفاده از رنگ مشکی روی سفید برای خوانایی در PDF)
-        element.style.padding = '20px';
-        element.style.background = 'white';
-        element.style.color = 'black';
-        element.style.direction = 'rtl';
-        element.style.fontFamily = 'Tahoma, Arial, sans-serif'; // فونت‌های رایج برای PDF
-        element.style.fontSize = '14px';
-        element.style.lineHeight = '1.6';
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 40;
+        let yPos = 50;
         
-        let htmlContent = `
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="margin: 0;">آزمون بیوشیمی بالینی</h1>
-                <p style="margin: 5px 0; color: #555;">تیم NetPHP.ir</p>
-                <hr style="border: 1px solid #ccc;">
-            </div>
-        `;
+        doc.setFontSize(16);
+        doc.text("آزمون بیوشیمی بالینی - تیم NetPHP.ir", pageWidth / 2, yPos, { align: "center" });
+        yPos += 30;
         
-        questions.forEach((q, i) => {
-            // استفاده از page-break-inside: avoid برای جلوگیری از نصفه شدن سوال در PDF
-            htmlContent += `
-                <div style="margin-bottom: 25px; page-break-inside: avoid;">
-                    <p style="font-weight: bold; margin-bottom: 10px;">${i+1}. ${q.question}</p>
-                    <ul style="list-style-type: none; padding-right: 15px; margin: 0;">
-                        ${q.options.map((opt, idx) => `<li style="margin-bottom: 5px;">${idx+1}) ${opt}</li>`).join('')}
-                    </ul>
-                    <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-right: 4px solid #22c55e; color: #166534; font-size: 0.9em;">
-                        <strong>پاسخ صحیح: گزینه ${q.correctIndex + 1}</strong><br>
-                        <strong>توضیح:</strong> ${q.explanation}
-                    </div>
-                </div>
-            `;
+        doc.setFontSize(10);
+        doc.text("---------------------------------------------------------", pageWidth / 2, yPos, { align: "center" });
+        yPos += 30;
+
+        questions.forEach((q, index) => {
+            if (yPos > pageHeight - 100) {
+                doc.addPage();
+                yPos = 50;
+            }
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            const questionLines = doc.splitTextToSize(`${index + 1}. ${q.question}`, pageWidth - (margin * 2));
+            doc.text(questionLines, pageWidth - margin, yPos, { align: "right" });
+            yPos += (questionLines.length * 15) + 10;
+
+            doc.setFont(undefined, 'normal');
+            q.options.forEach((opt, optIndex) => {
+                if (yPos > pageHeight - 50) { doc.addPage(); yPos = 50; }
+                const optLines = doc.splitTextToSize(`${optIndex + 1}) ${opt}`, pageWidth - (margin * 2) - 20);
+                doc.text(optLines, pageWidth - margin - 10, yPos, { align: "right" });
+                yPos += (optLines.length * 15) + 5;
+            });
+
+            yPos += 10;
+            if (yPos > pageHeight - 60) { doc.addPage(); yPos = 50; }
+            doc.setTextColor(0, 128, 0);
+            doc.setFont(undefined, 'bold');
+            doc.text(`پاسخ صحیح: گزینه ${q.correctIndex + 1}`, pageWidth - margin, yPos, { align: "right" });
+            yPos += 20;
+            
+            doc.setTextColor(100, 100, 100);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            const explLines = doc.splitTextToSize(`توضیح: ${q.explanation}`, pageWidth - (margin * 2));
+            doc.text(explLines, pageWidth - margin, yPos, { align: "right" });
+            yPos += (explLines.length * 15) + 30;
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
         });
 
-        element.innerHTML = htmlContent;
-
-        // تنظیمات پیشرفته برای html2pdf
-        const opt = {
-            margin:       [0.5, 0.5, 0.5, 0.5], // حاشیه بالا، راست، پایین، چپ
-            filename:     'Biochem-Quiz-NetPHP.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // جلوگیری از نصفه شدن محتوا
-        };
-
-        // تولید PDF
-        html2pdf().set(opt).from(element).save();
+        doc.save('Biochem-Quiz-NetPHP.pdf');
     };
 }
