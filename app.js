@@ -12,14 +12,14 @@ const nextBtn = document.getElementById('nextBtn');
 const noteInput = document.getElementById('noteInput');
 const questionText = document.getElementById('questionText');
 const optionsContainer = document.getElementById('optionsContainer');
-const feedback = document.getElementById('feedback');
 const timerDisplay = document.getElementById('timerDisplay');
 const progressDisplay = document.getElementById('progressDisplay');
+const reviewContainer = document.getElementById('reviewContainer');
 
 // متغیرهای آزمون
 let questions = [];
+let userAnswers = []; // ذخیره پاسخ‌های کاربر
 let currentQuestionIndex = 0;
-let score = 0;
 let timerInterval;
 let timeLeft = 0;
 
@@ -85,7 +85,7 @@ function startQuiz(minutes) {
     quizSection.classList.remove('hidden');
     
     currentQuestionIndex = 0;
-    score = 0;
+    userAnswers = new Array(questions.length).fill(null); // ریست کردن پاسخ‌ها
     timeLeft = minutes * 60;
     
     updateTimerDisplay();
@@ -108,7 +108,6 @@ function showQuestion() {
     const q = questions[currentQuestionIndex];
     progressDisplay.textContent = `سوال ${currentQuestionIndex + 1} از ${questions.length}`;
     questionText.textContent = q.question;
-    feedback.classList.add('hidden');
     nextBtn.classList.add('hidden');
     optionsContainer.innerHTML = '';
 
@@ -116,28 +115,38 @@ function showQuestion() {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.textContent = opt;
-        btn.onclick = () => checkAnswer(index, btn);
+        
+        // اگر کاربر قبلا گزینه‌ای انتخاب کرده بود، دوباره هایلایت شود
+        if (userAnswers[currentQuestionIndex] === index) {
+            btn.style.background = 'rgba(59, 130, 246, 0.3)';
+            btn.style.borderColor = '#3b82f6';
+        }
+
+        btn.onclick = () => selectOption(index, btn);
         optionsContainer.appendChild(btn);
     });
+
+    // اگر قبلا جواب داده، دکمه بعدی فعال باشد
+    if (userAnswers[currentQuestionIndex] !== null) {
+        nextBtn.classList.remove('hidden');
+    }
 }
 
-function checkAnswer(selectedIndex, btn) {
-    const q = questions[currentQuestionIndex];
+function selectOption(selectedIndex, btn) {
+    userAnswers[currentQuestionIndex] = selectedIndex; // ذخیره انتخاب کاربر
+    
+    // برداشتن هایلایت از بقیه
     const allBtns = optionsContainer.querySelectorAll('.option-btn');
-    allBtns.forEach(b => b.disabled = true);
+    allBtns.forEach(b => {
+        b.style.background = 'rgba(255,255,255,0.05)';
+        b.style.borderColor = 'rgba(255,255,255,0.1)';
+    });
 
-    if (selectedIndex === q.correctIndex) {
-        btn.classList.add('correct');
-        score++;
-    } else {
-        btn.classList.add('wrong');
-        allBtns[q.correctIndex].classList.add('correct');
-    }
+    // هایلایت کردن گزینه انتخاب شده
+    btn.style.background = 'rgba(59, 130, 246, 0.3)';
+    btn.style.borderColor = '#3b82f6';
 
-    feedback.classList.remove('hidden');
-    feedback.style.background = selectedIndex === q.correctIndex ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-    feedback.innerHTML = `<strong>${selectedIndex === q.correctIndex ? '✅ صحیح' : '❌ نادرست'}</strong><br><br>${q.explanation}`;
-
+    // نمایش دکمه بعدی
     nextBtn.classList.remove('hidden');
     if (currentQuestionIndex === questions.length - 1) {
         nextBtn.textContent = 'پایان آزمون 🏁';
@@ -160,8 +169,33 @@ function endQuiz() {
     quizSection.classList.add('hidden');
     resultSection.classList.remove('hidden');
 
-    const finalScore = Math.round((score / questions.length) * 100);
+    let correctCount = 0;
+    let reviewHTML = '<h3 style="margin-bottom: 1rem; color: #f8fafc;">📝 بررسی پاسخ‌ها</h3>';
+
+    questions.forEach((q, index) => {
+        const userAns = userAnswers[index];
+        const isCorrect = userAns === q.correctIndex;
+        if (isCorrect) correctCount++;
+
+        // ساخت بخش بررسی برای هر سوال
+        reviewHTML += `
+            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <p style="font-weight: bold; margin-bottom: 0.5rem;">${index + 1}. ${q.question}</p>
+                <p style="color: ${isCorrect ? '#22c55e' : '#ef4444'};">
+                    پاسخ شما: ${userAns !== null ? q.options[userAns] : 'بدون پاسخ'} ${isCorrect ? '✅' : '❌'}
+                </p>
+                ${!isCorrect ? `<p style="color: #22c55e; margin-top: 0.3rem;">پاسخ صحیح: ${q.options[q.correctIndex]}</p>` : ''}
+                <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">توضیح: ${q.explanation}</p>
+            </div>
+        `;
+    });
+
+    const finalScore = Math.round((correctCount / questions.length) * 100);
     document.getElementById('finalScore').textContent = finalScore;
+    document.getElementById('correctCount').textContent = correctCount;
+    document.getElementById('wrongCount').textContent = questions.length - correctCount;
+    
+    reviewContainer.innerHTML = reviewHTML;
     
     saveAndShowLeaderboard(finalScore);
     setupPdfButton();
@@ -171,14 +205,13 @@ function endQuiz() {
 function saveAndShowLeaderboard(newScore) {
     let scores = JSON.parse(localStorage.getItem('biochemLeaderboard')) || [];
     scores.push(newScore);
-    scores.sort((a, b) => b - a); // مرتب‌سازی نزولی
+    scores.sort((a, b) => b - a);
     localStorage.setItem('biochemLeaderboard', JSON.stringify(scores));
 
     document.getElementById('totalPlayers').textContent = scores.length;
     const list = document.getElementById('leaderboardList');
     list.innerHTML = '';
     
-    // نمایش ۵ رتبه برتر
     scores.slice(0, 5).forEach((s, index) => {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
         list.innerHTML += `<li><span>${medal} کاربر ناشناس</span><span>${s} از ۱۰۰</span></li>`;
