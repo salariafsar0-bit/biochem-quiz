@@ -3,48 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تست بالینی بیوشیمی | NetPHP</title>
+  <title>آزمون بالینی بیوشیمی | NetPHP</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- اضافه کردن کتابخانه ساخت PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>🧪 تولید تست بالینی بیوشیمی</h1>
+    <h1>🧪 آزمون بالینی بیوشیمی</h1>
     <p>تیم NetPHP.ir</p>
   </header>
 
   <main>
-    <!-- بخش ورود متن جزوه -->
-    <section class="card">
-      <h2>۱. متن جزوه را اینجا کپی کنید</h2>
-      <textarea id="noteInput" rows="8" placeholder="متن جزوه استاد را اینجا وارد کنید..."></textarea>
-    </section>
-
-    <!-- بخش انتخاب سطح دشواری -->
-    <section class="card">
-      <h2>۲. سطح دشواری را انتخاب کنید</h2>
-      <div class="difficulty-options">
-        <label>
-          <input type="radio" name="difficulty" value="آسان" checked>
-          <span>آسان</span>
-        </label>
-        <label>
-          <input type="radio" name="difficulty" value="متوسط">
-          <span>متوسط</span>
-        </label>
-        <label>
-          <input type="radio" name="difficulty" value="دشوار">
-          <span>دشوار</span>
-        </label>
+    <!-- بخش تنظیمات آزمون -->
+    <section id="setupSection">
+      <div class="card">
+        <h2>۱. متن جزوه را اینجا کپی کنید</h2>
+        <textarea id="noteInput" rows="6" placeholder="متن جزوه استاد را اینجا وارد کنید..."></textarea>
       </div>
+
+      <div class="card">
+        <h2>۲. تنظیمات آزمون</h2>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <div style="flex: 1;">
+                <label>تعداد سوالات:</label>
+                <select id="numQuestions" style="width: 100%; padding: 0.5rem; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #334155;">
+                    <option value="5">۵ سوال</option>
+                    <option value="10">۱۰ سوال</option>
+                    <option value="20">۲۰ سوال</option>
+                    <option value="30">۳۰ سوال</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label>زمان آزمون:</label>
+                <select id="timeLimit" style="width: 100%; padding: 0.5rem; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #334155;">
+                    <option value="5">۵ دقیقه</option>
+                    <option value="10">۱۰ دقیقه</option>
+                    <option value="20">۲۰ دقیقه</option>
+                </select>
+            </div>
+        </div>
+        
+        <label>سطح دشواری:</label>
+        <div class="difficulty-options">
+          <label><input type="radio" name="difficulty" value="آسان" checked><span>آسان</span></label>
+          <label><input type="radio" name="difficulty" value="متوسط"><span>متوسط</span></label>
+          <label><input type="radio" name="difficulty" value="دشوار"><span>دشوار</span></label>
+        </div>
+      </div>
+
+      <button id="generateBtn" class="btn-primary">🚀 شروع آزمون</button>
     </section>
 
-    <!-- دکمه تولید تست -->
-    <button id="generateBtn" class="btn-primary">✨ تولید تست</button>
+    <!-- بخش آزمون (در ابتدا مخفی) -->
+    <section id="quizSection" class="hidden">
+      <div class="quiz-header">
+        <div id="timerDisplay" class="timer">⏱ ۲۰:۰۰</div>
+        <div id="progressDisplay" class="progress">سوال ۱ از ۱۰</div>
+      </div>
+      
+      <div class="card" id="questionCard">
+        <h2 id="questionText"></h2>
+        <div id="optionsContainer" class="options-list"></div>
+        <div id="feedback" class="hidden"></div>
+      </div>
 
-    <!-- بخش نمایش تست‌ها (فعلاً خالی) -->
-    <section id="quizContainer" class="card hidden">
-      <h2>سوالات تست</h2>
-      <div id="questionContent"></div>
+      <button id="nextBtn" class="btn-primary hidden">سوال بعدی ⬅</button>
+    </section>
+
+    <!-- بخش نتایج (در ابتدا مخفی) -->
+    <section id="resultSection" class="hidden">
+      <div class="card text-center">
+        <h2>🎉 آزمون به پایان رسید!</h2>
+        <div id="finalScore" class="score-circle">۰</div>
+        <p style="margin-top: 1rem;">نمره شما از ۱۰۰</p>
+        
+        <div id="leaderboard" class="leaderboard">
+            <h3>🏆 رتبه‌بندی کل</h3>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem;">تاکنون <span id="totalPlayers">۰</span> نفر در این آزمون شرکت کرده‌اند.</p>
+            <ul id="leaderboardList"></ul>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button id="retakeBtn" class="btn-primary" style="flex: 1;">🔄 آزمون مجدد</button>
+            <button id="pdfBtn" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669);">📄 دریافت PDF</button>
+        </div>
+      </div>
     </section>
 
     <!-- بخش درباره ما -->
