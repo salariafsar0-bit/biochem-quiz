@@ -64,7 +64,6 @@
       <div class="card" id="questionCard">
         <h2 id="questionText"></h2>
         <div id="optionsContainer" class="options-list"></div>
-        <div id="feedback" class="hidden"></div>
       </div>
 
       <button id="nextBtn" class="btn-primary hidden">سوال بعدی ⬅</button>
@@ -77,10 +76,19 @@
         <div id="finalScore" class="score-circle">۰</div>
         <p style="margin-top: 1rem;">نمره شما از ۱۰۰</p>
         
+        <div style="display: flex; justify-content: space-around; margin-top: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;">
+            <div style="color: #22c55e;">تعداد صحیح: <span id="correctCount">۰</span></div>
+            <div style="color: #ef4444;">تعداد غلط: <span id="wrongCount">۰</span></div>
+        </div>
+
         <div id="leaderboard" class="leaderboard">
             <h3>🏆 رتبه‌بندی کل</h3>
             <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem;">تاکنون <span id="totalPlayers">۰</span> نفر در این آزمون شرکت کرده‌اند.</p>
             <ul id="leaderboardList"></ul>
+        </div>
+
+        <div id="reviewContainer" class="review-section" style="text-align: right; margin-top: 2rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; max-height: 400px; overflow-y: auto;">
+            <!-- بررسی سوالات اینجا لود می‌شود -->
         </div>
 
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
