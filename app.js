@@ -65,15 +65,8 @@ generateBtn.addEventListener('click', async () => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ? data.error.message : 'خطای نامشخص از سمت سرور');
 
-        let parsedData;
-        try {
-            parsedData = JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            // اگر هوش مصنوعی جواب رو خراب داده بود، خطای دقیق‌تری نشون بده
-            throw new Error("هوش مصنوعی پاسخ را با فرمت نامعتبر فرستاد. لطفاً دوباره روی دکمه شروع کلیک کنید.");
-        }
+        let parsedData = JSON.parse(data.choices[0].message.content);
         
-        // سیستم تشخیص و بازیابی هوشمند
         if (Array.isArray(parsedData)) {
             questions = parsedData;
         } else if (parsedData.questions && Array.isArray(parsedData.questions)) {
@@ -83,19 +76,13 @@ generateBtn.addEventListener('click', async () => {
             if (possibleArray) {
                 questions = possibleArray;
             } else {
-                throw new Error("هوش مصنوعی ساختار سوالات را رعایت نکرده است. لطفاً دوباره امتحان کنید.");
+                throw new Error("ساختار خروجی هوش مصنوعی نامعتبر است. لطفاً دوباره تلاش کنید.");
             }
         }
         
-        // فیلتر کردن سوالات ناقص
         questions = questions.filter(q => q.question && q.options && q.options.length > 0);
 
-        if(questions.length === 0) throw new Error("هیچ سوال معتبری تولید نشد. لطفاً دوباره امتحان کنید یا متن جزوه را طولانی‌تر کنید.");
-
-        // اگر تعداد سوالات از تعدادی که کاربر خواسته کمتر بود، بهش اطلاع بده
-        if (questions.length < numQ) {
-            alert(`توجه: هوش مصنوعی فقط توانست ${questions.length} سوال تولید کند. آزمون با همین تعداد شروع می‌شود.`);
-        }
+        if(questions.length === 0) throw new Error("هیچ سوالی تولید نشد. متن جزوه ممکن است کوتاه باشد.");
 
         startQuiz(timeLimit);
 
@@ -246,37 +233,58 @@ document.getElementById('retakeBtn').addEventListener('click', () => {
     window.scrollTo(0, 0);
 });
 
+// ✨ این بخش برای ساخت PDF اصلاح شده است
 function setupPdfButton() {
     document.getElementById('pdfBtn').onclick = () => {
+        // ساخت یک کانتینر موقت
         const element = document.createElement('div');
-        element.style.padding = '30px';
+        
+        // استایل‌دهی دقیق به کانتینر (استفاده از رنگ مشکی روی سفید برای خوانایی در PDF)
+        element.style.padding = '20px';
         element.style.background = 'white';
         element.style.color = 'black';
         element.style.direction = 'rtl';
-        element.style.fontFamily = 'Vazirmatn, sans-serif';
+        element.style.fontFamily = 'Tahoma, Arial, sans-serif'; // فونت‌های رایج برای PDF
+        element.style.fontSize = '14px';
+        element.style.lineHeight = '1.6';
         
-        element.innerHTML = `<h1 style="text-align:center;">آزمون بیوشیمی بالینی - تیم NetPHP</h1><hr>`;
+        let htmlContent = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="margin: 0;">آزمون بیوشیمی بالینی</h1>
+                <p style="margin: 5px 0; color: #555;">تیم NetPHP.ir</p>
+                <hr style="border: 1px solid #ccc;">
+            </div>
+        `;
         
         questions.forEach((q, i) => {
-            element.innerHTML += `
-                <div style="margin-bottom: 20px;">
-                    <p style="font-weight:bold;">${i+1}. ${q.question}</p>
-                    <ul style="list-style-type: none; padding-right: 10px;">
-                        ${q.options.map((opt, idx) => `<li>${idx+1}) ${opt}</li>`).join('')}
+            // استفاده از page-break-inside: avoid برای جلوگیری از نصفه شدن سوال در PDF
+            htmlContent += `
+                <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                    <p style="font-weight: bold; margin-bottom: 10px;">${i+1}. ${q.question}</p>
+                    <ul style="list-style-type: none; padding-right: 15px; margin: 0;">
+                        ${q.options.map((opt, idx) => `<li style="margin-bottom: 5px;">${idx+1}) ${opt}</li>`).join('')}
                     </ul>
-                    <p style="color: green; font-size: 0.9em; margin-top:5px;">پاسخ صحیح: گزینه ${q.correctIndex + 1} | توضیح: ${q.explanation}</p>
+                    <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-right: 4px solid #22c55e; color: #166534; font-size: 0.9em;">
+                        <strong>پاسخ صحیح: گزینه ${q.correctIndex + 1}</strong><br>
+                        <strong>توضیح:</strong> ${q.explanation}
+                    </div>
                 </div>
             `;
         });
 
+        element.innerHTML = htmlContent;
+
+        // تنظیمات پیشرفته برای html2pdf
         const opt = {
-            margin: 1,
-            filename: 'Biochem-Quiz-NetPHP.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            margin:       [0.5, 0.5, 0.5, 0.5], // حاشیه بالا، راست، پایین، چپ
+            filename:     'Biochem-Quiz-NetPHP.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // جلوگیری از نصفه شدن محتوا
         };
 
+        // تولید PDF
         html2pdf().set(opt).from(element).save();
     };
 }
