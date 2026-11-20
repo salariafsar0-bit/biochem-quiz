@@ -1,9 +1,9 @@
-// اطلاعات کلودفلر شما
 const CLOUDFLARE_ACCOUNT_ID = "081b35dcb5c837648266303964f6b36a"; 
 const CLOUDFLARE_API_TOKEN = "cfut_eSJ2A2wBNwsQa4daC7QeohcrdYM8IpQOuXZqFYJVe0005c12"; 
 
 const API_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
 
+// پیدا کردن المان‌های صفحه
 const generateBtn = document.getElementById('generateBtn');
 const noteInput = document.getElementById('noteInput');
 const quizContainer = document.getElementById('quizContainer');
@@ -52,9 +52,11 @@ generateBtn.addEventListener('click', async () => {
         const data = await response.json();
         
         if (!response.ok) {
+            // نمایش خطای دقیق اگر کلودفلر جواب نداد
             throw new Error(`خطای سرور: ${response.status} - ${data.errors ? data.errors[0].message : 'خطای نامشخص'}`);
         }
 
+        // پردازش پاسخ کلودفلر
         const quizData = JSON.parse(data.result.response);
         renderQuiz(quizData);
 
@@ -67,7 +69,6 @@ generateBtn.addEventListener('click', async () => {
     }
 });
 
-// تابع نمایش تست
 function renderQuiz(quiz) {
     quizContainer.classList.remove('hidden');
     let html = `<h3 style="margin-bottom: 1rem; color: #60a5fa;">${quiz.question}</h3>`;
@@ -84,6 +85,7 @@ function renderQuiz(quiz) {
         btn.addEventListener('click', () => {
             const selectedIndex = parseInt(btn.dataset.index);
             const isCorrect = selectedIndex === quiz.correctIndex;
+            
             optionBtns.forEach(b => {
                 b.disabled = true;
                 if (parseInt(b.dataset.index) === quiz.correctIndex) {
@@ -94,6 +96,7 @@ function renderQuiz(quiz) {
                     b.style.borderColor = '#ef4444';
                 }
             });
+
             const feedback = document.getElementById('feedback');
             feedback.classList.remove('hidden');
             feedback.style.background = isCorrect ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
