@@ -3,6 +3,14 @@ const API_KEY = "sk-IR539NDhCUXxvDtzUttgQIM8Dep2OuDidMDMxtcbFTv7FfNU";
 const API_URL = "https://api.gapgpt.app/v1/chat/completions";
 const MODEL_NAME = "gpt-4o-mini"; 
 
+// تولید یا خواندن کد شناسایی یکتا برای کاربر
+let myUserId = localStorage.getItem('biochemUserId');
+if (!myUserId) {
+    myUserId = 'User-' + Math.floor(1000 + Math.random() * 9000); // مثلا User-4823
+    localStorage.setItem('biochemUserId', myUserId);
+}
+document.getElementById('myIdDisplay').textContent = myUserId;
+
 // المان‌های صفحه
 const setupSection = document.getElementById('setupSection');
 const quizSection = document.getElementById('quizSection');
@@ -15,14 +23,37 @@ const optionsContainer = document.getElementById('optionsContainer');
 const timerDisplay = document.getElementById('timerDisplay');
 const progressDisplay = document.getElementById('progressDisplay');
 const reviewContainer = document.getElementById('reviewContainer');
+const summaryBtn = document.getElementById('summaryBtn');
+const summaryContainer = document.getElementById('summaryContainer');
 
-// متغیرهای آزمون
 let questions = [];
 let userAnswers = []; 
 let currentQuestionIndex = 0;
 let timerInterval;
 let timeLeft = 0;
 
+// --- سیستم خواندن فایل ورد ---
+document.getElementById('wordFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const arrayBuffer = event.target.result;
+        // تبدیل داکیومنت به متن با mammoth
+        mammoth.extractRawText({arrayBuffer: arrayBuffer})
+            .then(function(result) {
+                noteInput.value = result.value;
+                document.getElementById('fileNameDisplay').textContent = "✅ فایل با موفقیت خوانده شد.";
+            })
+            .catch(function(err) {
+                alert("خطا در خواندن فایل Word. لطفاً از فرمت .docx استفاده کنید.");
+            });
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// --- شروع آزمون ---
 generateBtn.addEventListener('click', async () => {
     const noteText = noteInput.value.trim();
     const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
@@ -34,9 +65,21 @@ generateBtn.addEventListener('click', async () => {
     generateBtn.textContent = '⏳ در حال تولید سوالات... (لطفاً صبر کنید)';
     generateBtn.disabled = true;
 
+    // پرامپت هوشمند: برای دشوار، سوالات سناریویی می‌سازد
+    let difficultyPrompt = "";
+    if (difficulty === "دشوار") {
+        difficultyPrompt = "سوالات باید سطح بالا، بالینی، طولانی و به صورت سناریو (Case-based) باشند. از دانشجو بخواه که با ترکیب چند مفهوم، تحلیل و تشخیص نهایی انجام دهد.";
+    } else if (difficulty === "متوسط") {
+        difficultyPrompt = "سوالات باید ترکیبی از مفاهیم پایه و کمی تحلیل باشند.";
+    } else {
+        difficultyPrompt = "سوالات باید مستقیم، کوتاه و بر اساس مفاهیم پایه جزوه باشند.";
+    }
+
     const prompt = `
-    تو یک استاد بیوشیمی بالینی هستی. بر اساس متن جزوه زیر، دقیقا ${numQ} تست چهارگزینه‌ای طراحی کن.
-    سطح دشواری: ${difficulty}
+    تو یک استاد بیوشیمی بالینی و متخصص علوم آزمایشگاهی هستی. بر اساس متن جزوه زیر، دقیقا ${numQ} تست چهارگزینه‌ای طراحی کن.
+    سطح دشواری درخواستی: ${difficulty}
+    ${difficultyPrompt}
+    
     خروجی باید فقط و فقط یک آبجکت JSON معتبر با ساختار زیر باشد (هیچ متن اضافه‌ای، هیچ کاما اضافه‌ای):
     {
       "questions": [
@@ -67,21 +110,15 @@ generateBtn.addEventListener('click', async () => {
 
         let parsedData = JSON.parse(data.choices[0].message.content);
         
-        if (Array.isArray(parsedData)) {
-            questions = parsedData;
-        } else if (parsedData.questions && Array.isArray(parsedData.questions)) {
-            questions = parsedData.questions;
-        } else {
+        if (Array.isArray(parsedData)) questions = parsedData;
+        else if (parsedData.questions && Array.isArray(parsedData.questions)) questions = parsedData.questions;
+        else {
             const possibleArray = Object.values(parsedData).find(val => Array.isArray(val));
-            if (possibleArray) {
-                questions = possibleArray;
-            } else {
-                throw new Error("ساختار خروجی هوش مصنوعی نامعتبر است. لطفاً دوباره تلاش کنید.");
-            }
+            if (possibleArray) questions = possibleArray;
+            else throw new Error("ساختار خروجی هوش مصنوعی نامعتبر است.");
         }
         
         questions = questions.filter(q => q.question && q.options && q.options.length > 0);
-
         if(questions.length === 0) throw new Error("هیچ سوالی تولید نشد. متن جزوه ممکن است کوتاه باشد.");
 
         startQuiz(timeLimit);
@@ -156,11 +193,8 @@ function selectOption(selectedIndex, btn) {
     btn.style.borderColor = '#3b82f6';
 
     nextBtn.classList.remove('hidden');
-    if (currentQuestionIndex === questions.length - 1) {
-        nextBtn.textContent = 'پایان آزمون 🏁';
-    } else {
-        nextBtn.textContent = 'سوال بعدی ⬅';
-    }
+    if (currentQuestionIndex === questions.length - 1) nextBtn.textContent = 'پایان آزمون 🏁';
+    else nextBtn.textContent = 'سوال بعدی ⬅';
 }
 
 nextBtn.addEventListener('click', () => {
@@ -208,21 +242,74 @@ function endQuiz() {
     setupPdfButton();
 }
 
+// --- سیستم رتبه‌بندی با کد شناسایی ---
 function saveAndShowLeaderboard(newScore) {
-    let scores = JSON.parse(localStorage.getItem('biochemLeaderboard')) || [];
-    scores.push(newScore);
-    scores.sort((a, b) => b - a);
-    localStorage.setItem('biochemLeaderboard', JSON.stringify(scores));
+    let leaderboardData = JSON.parse(localStorage.getItem('biochemLeaderboardV2')) || {};
+    
+    // بررسی اینکه آیا این کاربر قبلا نمره‌ای داشته یا نه (ذخیره بهترین نمره)
+    if (!leaderboardData[myUserId] || newScore > leaderboardData[myUserId]) {
+        leaderboardData[myUserId] = newScore;
+    }
+    
+    localStorage.setItem('biochemLeaderboardV2', JSON.stringify(leaderboardData));
 
-    document.getElementById('totalPlayers').textContent = scores.length;
+    // تبدیل به آرایه برای مرتب‌سازی
+    let scoresArray = Object.keys(leaderboardData).map(id => {
+        return { id: id, score: leaderboardData[id] };
+    });
+
+    scoresArray.sort((a, b) => b.score - a.score); // مرتب‌سازی نزولی
+
+    document.getElementById('totalPlayers').textContent = scoresArray.length;
     const list = document.getElementById('leaderboardList');
     list.innerHTML = '';
     
-    scores.slice(0, 5).forEach((s, index) => {
+    // نمایش ۵ رتبه برتر
+    scoresArray.slice(0, 5).forEach((user, index) => {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-        list.innerHTML += `<li><span>${medal} کاربر ناشناس</span><span>${s} از ۱۰۰</span></li>`;
+        const isMe = user.id === myUserId ? ' (شما)' : '';
+        list.innerHTML += `<li><span>${medal} ${user.id}${isMe}</span><span>${user.score} از ۱۰۰</span></li>`;
     });
 }
+
+// --- سیستم خلاصه مروری ---
+summaryBtn.addEventListener('click', async () => {
+    summaryBtn.textContent = '⏳ در حال تولید خلاصه...';
+    summaryBtn.disabled = true;
+    
+    // جمع آوری تمام مطالب سوال شده برای هوش مصنوعی
+    let allQuestionsText = questions.map(q => q.question).join(" \n ");
+    
+    const prompt = `
+    تو یک استاد بیوشیمی هستی. بر اساس سوالات آزمونی که دانشجو داده است، یک پاراگراف مروری روان، جامع و آموزشی بنویس. 
+    هدف این است که دانشجو با خواندن این پاراگراف، تمام مفاهیم مهم سوالاتی که در آزمون به او داده شده را یک بار دیگر مرور کند.
+    سوالات مطرح شده در آزمون: 
+    ${allQuestionsText}
+    
+    خروجی فقط و فقط متن پاراگراف باشد (بدون مقدمه و بدون JSON).
+    `;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+
+        const data = await response.json();
+        summaryContainer.textContent = data.choices[0].message.content;
+        summaryContainer.classList.remove('hidden');
+        summaryBtn.textContent = '📚 خلاصه مروری (تولید شد)';
+        
+    } catch (error) {
+        alert('خطا در تولید خلاصه: ' + error.message);
+        summaryBtn.textContent = '📚 دریافت خلاصه مروری';
+        summaryBtn.disabled = false;
+    }
+});
 
 document.getElementById('retakeBtn').addEventListener('click', () => {
     resultSection.classList.add('hidden');
@@ -230,66 +317,64 @@ document.getElementById('retakeBtn').addEventListener('click', () => {
     generateBtn.textContent = '🚀 شروع آزمون';
     generateBtn.disabled = false;
     questions = [];
+    summaryBtn.textContent = '📚 دریافت خلاصه مروری';
+    summaryBtn.disabled = false;
+    summaryContainer.classList.add('hidden');
     window.scrollTo(0, 0);
 });
 
-// ✨ تابع حرفه‌ای ساخت PDF (بدون مشکل بریدگی)
+// --- ساخت PDF ---
 function setupPdfButton() {
-    document.getElementById('pdfBtn').onclick = async () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
+    document.getElementById('pdfBtn').onclick = () => {
+        const element = document.createElement('div');
         
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 40;
-        let yPos = 50;
+        element.style.padding = '20px';
+        element.style.background = 'white';
+        element.style.color = 'black';
+        element.style.direction = 'rtl';
+        element.style.fontFamily = 'Vazirmatn, Tahoma, sans-serif'; 
+        element.style.fontSize = '14px';
+        element.style.lineHeight = '1.8';
         
-        doc.setFontSize(16);
-        doc.text("آزمون بیوشیمی بالینی - تیم NetPHP.ir", pageWidth / 2, yPos, { align: "center" });
-        yPos += 30;
+        let htmlContent = `
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="margin: 0; font-size: 22px;">آزمون بیوشیمی بالینی - تیم NetPHP.ir</h1>
+                <p style="margin: 5px 0; color: #555; font-size: 12px;">دانشجو: سنا حکیمیان | دانشکده علوم آزمایشگاهی شهید صدوقی</p>
+                <hr style="border: 1px solid #ddd; margin-top: 10px;">
+            </div>
+        `;
         
-        doc.setFontSize(10);
-        doc.text("---------------------------------------------------------", pageWidth / 2, yPos, { align: "center" });
-        yPos += 30;
-
-        questions.forEach((q, index) => {
-            if (yPos > pageHeight - 100) {
-                doc.addPage();
-                yPos = 50;
-            }
-
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            const questionLines = doc.splitTextToSize(`${index + 1}. ${q.question}`, pageWidth - (margin * 2));
-            doc.text(questionLines, pageWidth - margin, yPos, { align: "right" });
-            yPos += (questionLines.length * 15) + 10;
-
-            doc.setFont(undefined, 'normal');
-            q.options.forEach((opt, optIndex) => {
-                if (yPos > pageHeight - 50) { doc.addPage(); yPos = 50; }
-                const optLines = doc.splitTextToSize(`${optIndex + 1}) ${opt}`, pageWidth - (margin * 2) - 20);
-                doc.text(optLines, pageWidth - margin - 10, yPos, { align: "right" });
-                yPos += (optLines.length * 15) + 5;
-            });
-
-            yPos += 10;
-            if (yPos > pageHeight - 60) { doc.addPage(); yPos = 50; }
-            doc.setTextColor(0, 128, 0);
-            doc.setFont(undefined, 'bold');
-            doc.text(`پاسخ صحیح: گزینه ${q.correctIndex + 1}`, pageWidth - margin, yPos, { align: "right" });
-            yPos += 20;
-            
-            doc.setTextColor(100, 100, 100);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            const explLines = doc.splitTextToSize(`توضیح: ${q.explanation}`, pageWidth - (margin * 2));
-            doc.text(explLines, pageWidth - margin, yPos, { align: "right" });
-            yPos += (explLines.length * 15) + 30;
-            
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
+        questions.forEach((q, i) => {
+            htmlContent += `
+                <div style="margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 10px; font-size: 15px;">${i+1}. ${q.question}</p>
+                    <div style="padding-right: 15px; margin-bottom: 15px;">
+                        ${q.options.map((opt, idx) => `<p style="margin: 5px 0;">${idx+1}) ${opt}</p>`).join('')}
+                    </div>
+                    <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-right: 4px solid #22c55e; color: #166534; font-size: 13px;">
+                        <strong>پاسخ صحیح: گزینه ${q.correctIndex + 1}</strong><br>
+                        <strong>توضیح:</strong> ${q.explanation}
+                    </div>
+                </div>
+            `;
         });
 
-        doc.save('Biochem-Quiz-NetPHP.pdf');
+        element.innerHTML = htmlContent;
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
+        document.body.appendChild(element);
+
+        const opt = {
+            margin:       [0.5, 0.5, 0.5, 0.5], 
+            filename:     'Biochem-Quiz-NetPHP.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'], avoid: '.page-break-avoid' } 
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.body.removeChild(element);
+        });
     };
 }
