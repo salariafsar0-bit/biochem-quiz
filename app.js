@@ -1,7 +1,29 @@
-// ⚠️ کلید API خودت را اینجا قرار بده
-const API_KEY = "sk-IR539NDhCUXxvDtzUttgQIM8Dep2OuDidMDMxtcbFTv7FfNU"; 
-const API_URL = "https://api.gapgpt.ir/v1/chat/completions";
+// حالا کلید از داخل مرورگر خوانده می‌شود
+let API_KEY = localStorage.getItem('biochemApiKey') || ""; 
+// آدرس ورکر کلودفلر شما (اسمی که خودت گفتی)
+const API_URL = "https://biochem-proxy.saliafsar0.workers.dev"; 
 const MODEL_NAME = "gpt-4o-mini"; 
+
+// مدیریت دکمه ذخیره کلید
+const apiKeyInput = document.getElementById('apiKeyInput');
+const apiKeyCard = document.getElementById('apiKeyCard');
+
+if (API_KEY) {
+    apiKeyInput.value = API_KEY;
+    apiKeyCard.style.display = 'none'; // اگر کلید قبلا ذخیره شده، کارت رو مخفی کن
+}
+
+document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+        localStorage.setItem('biochemApiKey', key);
+        API_KEY = key;
+        alert('کلید با موفقیت ذخیره شد!');
+        apiKeyCard.style.display = 'none';
+    } else {
+        alert('لطفاً یک کلید معتبر وارد کنید.');
+    }
+});
 
 // تولید یا خواندن کد شناسایی یکتا برای کاربر
 let myUserId = localStorage.getItem('biochemUserId');
@@ -11,7 +33,7 @@ if (!myUserId) {
 }
 document.getElementById('myIdDisplay').textContent = myUserId;
 
-// المان‌های صفحه
+// بقیه المان‌های صفحه...
 const setupSection = document.getElementById('setupSection');
 const quizSection = document.getElementById('quizSection');
 const resultSection = document.getElementById('resultSection');
@@ -54,6 +76,11 @@ document.getElementById('wordFileInput').addEventListener('change', function(e) 
 
 // --- شروع آزمون ---
 generateBtn.addEventListener('click', async () => {
+    if (!API_KEY) {
+        alert('لطفاً ابتدا کلید API خود را در بالای صفحه وارد و ذخیره کنید.');
+        return;
+    }
+
     const noteText = noteInput.value.trim();
     const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
     const numQ = parseInt(document.getElementById('numQuestions').value);
@@ -104,7 +131,6 @@ generateBtn.addEventListener('click', async () => {
         });
 
         if (!response.ok) {
-            // اینجا خطای دقیق سرور رو می‌گیریم
             const errData = await response.json();
             throw new Error(`خطای سرور ${response.status}: ${errData.error ? errData.error.message : 'کلید API نامعتبر است یا اعتبار حساب تمام شده'}`);
         }
@@ -126,14 +152,15 @@ generateBtn.addEventListener('click', async () => {
         startQuiz(timeLimit);
 
     } catch (error) {
-        // اینجا ارور دقیق رو نشون میده
         alert('مشکل در تولید سوالات:\n' + error.message);
         generateBtn.textContent = '🚀 شروع آزمون';
         generateBtn.disabled = false;
     }
 });
 
-// ... (بقیه توابع بدون تغییر: startQuiz, updateTimerDisplay, showQuestion, selectOption, endQuiz, saveAndShowLeaderboard, summaryBtn, retakeBtn, setupPdfButton)
+// ... (توابع startQuiz, updateTimerDisplay, showQuestion, selectOption, endQuiz, saveAndShowLeaderboard, summaryBtn, retakeBtn, setupPdfButton دقیقاً مثل قبل هستند و نیازی به تغییر ندارند)
+// برای جلوگیری از طولانی شدن پیام، از اینجا به بعد کد رو کپی کن:
+
 function startQuiz(minutes) {
     setupSection.classList.add('hidden');
     quizSection.classList.remove('hidden');
