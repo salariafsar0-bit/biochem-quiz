@@ -6,9 +6,7 @@
   <title>آزمون بالینی بیوشیمی | NetPHP</title>
   <link rel="stylesheet" href="style.css" />
   
-  <!-- کتابخانه‌های مورد نیاز -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <!-- کتابخانه خواندن فایل Word -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
@@ -18,12 +16,18 @@
   </header>
 
   <main>
-    <!-- بخش تنظیمات آزمون -->
     <section id="setupSection">
+      <!-- فیلد ورود کلید API -->
+      <div class="card" id="apiKeyCard">
+        <h2>🔑 کلید API خود را وارد کنید</h2>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">(این کلید فقط در مرورگر شما ذخیره می‌شود و به کسی نشان داده نمی‌شود)</p>
+        <input type="password" id="apiKeyInput" placeholder="کلید API را اینجا وارد کنید (مثلاً sk-...)" style="width: 100%; padding: 0.8rem; border-radius: 8px; background: #1e293b; color: white; border: 1px solid #334155; margin-bottom: 1rem;" />
+        <button id="saveApiKeyBtn" class="btn-primary" style="padding: 0.6rem;">💾 ذخیره کلید</button>
+      </div>
+
       <div class="card">
         <h2>۱. متن جزوه را وارد کنید</h2>
         
-        <!-- گزینه آپلود فایل ورد -->
         <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; text-align: center;">
             <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">می‌توانید فایل Word (docx) خود را آپلود کنید:</p>
             <input type="file" id="wordFileInput" accept=".docx" style="display: none;" />
@@ -94,7 +98,6 @@
             <div style="color: #ef4444;">تعداد غلط: <span id="wrongCount">۰</span></div>
         </div>
 
-        <!-- دکمه خلاصه مروری -->
         <div style="margin-top: 1.5rem;">
             <button id="summaryBtn" class="btn-primary" style="background: linear-gradient(135deg, #eab308, #f59e0b);">📚 دریافت خلاصه مروری</button>
             <div id="summaryContainer" class="hidden" style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; line-height: 1.8; text-align: justify;"></div>
@@ -116,7 +119,6 @@
       </div>
     </section>
 
-    <!-- بخش درباره ما -->
     <section class="card about">
       <h3>درباره ما</h3>
       <p>این برنامه توسط تیم <strong>NetPHP.ir</strong> ساخته شده است.</p>
